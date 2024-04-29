@@ -107,6 +107,9 @@ namespace KerbalSimpit.Serial
                     // If the port connected, set connected status to waiting for the handshake
                     portStatus = ConnectionStatus.WAITING_HANDSHAKE;
 
+                    // Reset buffer (in case port opened/closed multiple times per game session)
+                    CurrentBytesRead = 0;
+
                     SerialReadThread.Start();
                     SerialWriteThread.Start();
                     while (!SerialReadThread.IsAlive || !SerialWriteThread.IsAlive);
@@ -487,6 +490,17 @@ namespace KerbalSimpit.Serial
             {
                 PayloadBuffer[CurrentBytesRead] = ReadBuffer[x];
                 CurrentBytesRead++;
+                if (CurrentBytesRead == PayloadBuffer.Length)
+                {
+                    Debug.LogError("Simpit : PayloadBuffer overflow. Malformed data?");
+                    Debug.LogError("PayloadBuffer: [" + String.Join<byte>(",", PayloadBuffer) + "]");
+
+                    // This may result in some data loss, but that is preferable
+                    // to a buffer overflow. Dropped messages can always be re-sent
+                    // Such an overflow seems very common during handshake
+                    CurrentBytesRead = 0;
+                    return;
+                }
 
                 if (ReadBuffer[x] == 0)
                 {
