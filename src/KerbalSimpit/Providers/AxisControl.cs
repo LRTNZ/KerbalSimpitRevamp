@@ -330,46 +330,49 @@ namespace KerbalSimPit.Providers
 
         public void SASInfoProvider()
         {
-            if (FlightGlobals.ActiveVessel == null)
+            UnityMainThreadDispatcher.Instance().Enqueue(() =>
             {
-                // This can happen when docking/undocking/changing scene, etc.
-                return;
-            }
-
-            VesselAutopilot autopilot = FlightGlobals.ActiveVessel.Autopilot;
-
-            if (autopilot == null)
-            {
-                return;
-            }
-
-            if (autopilot.Enabled)
-            {
-                newSASInfo.currentSASMode = (byte)autopilot.Mode;
-            }
-            else
-            {
-                newSASInfo.currentSASMode = 255; //special value to indicate a disabled SAS
-            }
-
-            newSASInfo.SASModeAvailability = 0;
-            foreach (VesselAutopilot.AutopilotMode i in Enum.GetValues(typeof(VesselAutopilot.AutopilotMode)))
-            {
-                if (autopilot.CanSetMode(i))
+                if (FlightGlobals.ActiveVessel == null)
                 {
-                    newSASInfo.SASModeAvailability = (ushort)(newSASInfo.SASModeAvailability | (1 << (byte)i));
+                    // This can happen when docking/undocking/changing scene, etc.
+                    return;
                 }
-            }
 
-            if (mySASInfo.currentSASMode != newSASInfo.currentSASMode ||
-                mySASInfo.SASModeAvailability != newSASInfo.SASModeAvailability)
-            {
-                if (SASInfoChannel != null)
+                VesselAutopilot autopilot = FlightGlobals.ActiveVessel.Autopilot;
+
+                if (autopilot == null)
                 {
-                    mySASInfo = newSASInfo;
-                    SASInfoChannel.Fire(OutboundPackets.SASInfo, mySASInfo);
+                    return;
                 }
-            }
+
+                if (autopilot.Enabled)
+                {
+                    newSASInfo.currentSASMode = (byte)autopilot.Mode;
+                }
+                else
+                {
+                    newSASInfo.currentSASMode = 255; //special value to indicate a disabled SAS
+                }
+
+                newSASInfo.SASModeAvailability = 0;
+                foreach (VesselAutopilot.AutopilotMode i in Enum.GetValues(typeof(VesselAutopilot.AutopilotMode)))
+                {
+                    if (autopilot.CanSetMode(i))
+                    {
+                        newSASInfo.SASModeAvailability = (ushort)(newSASInfo.SASModeAvailability | (1 << (byte)i));
+                    }
+                }
+
+                if (mySASInfo.currentSASMode != newSASInfo.currentSASMode ||
+                    mySASInfo.SASModeAvailability != newSASInfo.SASModeAvailability)
+                {
+                    if (SASInfoChannel != null)
+                    {
+                        mySASInfo = newSASInfo;
+                        SASInfoChannel.Fire(OutboundPackets.SASInfo, mySASInfo);
+                    }
+                }
+            });
         }
 
         class RotationCommandProvider : GenericProvider<RotationalStruct>
